@@ -24,11 +24,12 @@ language = 'fr'
 # Set model of the assistant
 model = 'text-davinci-003'
 
-# TODO: Set the minimum ratio required for a match
-# min_ratio = 80
+# Set the minimum ratio required for a match
+min_ratio = 70
 
 # Initializing the recognizer
 r = sr.Recognizer()
+
 
 # Starting the microphone
 with sr.Microphone() as source:
@@ -36,49 +37,55 @@ with sr.Microphone() as source:
     print("Dite 'Laura' pour activer l'assistant vocal")
     audio = r.listen(source)
 
-# Recognizing the speech
-# TODO: add a ratio to say "Laura" and "stop"
-text = r.recognize_google(audio)
+# Recognize the user's voice
+try:
+    transcribed_text = r.recognize_google(audio)
+    ratio = fuzz.token_set_ratio(transcribed_text.lower(), "laura")
+    if ratio >= min_ratio:
+        print("Je vous écoute...")
+        with sr.Microphone() as source:
+            r.adjust_for_ambient_noise(source)
+            audio = r.listen(source)
+        try:
+            prompt = r.recognize_google(audio)
+            print("Votre avez dit: " + prompt)
+            # Generate a response
+            completion = openai.Completion.create(
+                engine=model_engine,
+                prompt=prompt,
+                max_tokens=1024,
+                n=1,
+                stop=None,
+                temperature=0.5,
+            )
+            response = completion.choices[0].text
+            print("Laura: " + response)
+            # Call the function to convert the text to an audio file and play it
+            play_audio(response)
+        except sr.UnknownValueError:
+            print("Je n'ai pas compris votre question")
+            # Call the function to convert the text to an audio file and play it
+            play_audio("Je n'ai pas compris votre question")
+    else:
+        print("Vous m'avez appelée ?")
+        # Call the function to convert the text to an audio file and play it
+        play_audio("Vous m'avez appelée ?")
 
-# print the text
-print(text)
+except sr.UnknownValueError:
+    print("Je n'ai pas compris votre question")
+    # Call the function to convert the text to an audio file and play it
+    play_audio("Je n'ai pas compris votre question")
 
-# if you say "Laura" the assistant will start
-if text.lower() == "laura":
-    print("Bonjour que puis-je faire pour vous ?")
-    # play a sound to say that the assistant is ready
-    wave_obj = sa.WaveObject.from_wave_file("ready.wav")
+
+# Function to convert the text to an audio file and play it
+def play_audio(text):
+    # Utilise Google Text-to-Speech pour convertir le texte en fichier audio
+    tts = gTTS(text)
+    tts.save("response.mp3")
+    # Convert mp3 to wav
+    sound = AudioSegment.from_mp3("response.mp3")
+    sound.export("response.wav", format="wav")
+    # Joue le fichier audio à l'aide de simpleaudio
+    wave_obj = sa.WaveObject.from_wave_file("response.wav")
     play_obj = wave_obj.play()
     play_obj.wait_done()
-    # start the assistant
-    while True:
-        # Starting the microphone
-        with sr.Microphone() as source:
-            print("Je vous écoute...")
-            audio = r.listen(source)
-
-        # Recognizing the speech
-        text = r.recognize_google(audio)
-
-        # print the text
-        print(text)
-
-        # if you say "stop" the assistant will stop
-        if text.lower() == "stop":
-            print("Goodbye!")
-            # play a sound to say that the assistant is ready
-            wave_obj = sa.WaveObject.from_wave_file("bye.wav")
-            play_obj = wave_obj.play()
-            play_obj.wait_done()
-            break
-
-        # if you say something else the assistant will ask the question to chatGPT3 and answer you
-        else:
-            # ask the question to chatGPT3
-            response = openai.Completion.create(
-                # TODO: change the prompt
-                # TODO: add a way to save the conversation
-            )
-
-# TODO: print the answer and play the answer with voices
-# TODO: add a way to save the conversation
