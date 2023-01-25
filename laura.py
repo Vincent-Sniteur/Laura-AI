@@ -1,8 +1,14 @@
+"""
+Author: Vincent - Sniteur
+Date:   2023-01-25
+"""
+
 import speech_recognition as sr
 import openai
 from gtts import gTTS
 from pydub import AudioSegment
 import configparser
+import platform
 
 # read config file
 config = configparser.ConfigParser()
@@ -17,11 +23,23 @@ language = 'fr'
 voice = 'fr-FR-Wavenet-A'
 
 # Set model of the assistant
-model = 'davinci'
+model = 'text-davinci-003'
 
 # Initializing the recognizer
 r = sr.Recognizer()
 
+
+# PLAY AUDIO FUNCTION
+def play(audio):
+    if platform.system() == 'Windows':
+        import winsound
+        winsound.PlaySound(audio.export(), winsound.SND_FILENAME)
+    else:
+        import os
+        os.system("play -q {}".format(audio.export()))
+
+
+# Infinite loop to keep the assistant running until the user says "stop" or "laura"
 while True:
     # Starting the microphone and waiting for the user to say "Laura"
     with sr.Microphone() as source:
@@ -29,7 +47,7 @@ while True:
         r.adjust_for_ambient_noise(source)
         audio = r.listen(source)
 
-    # Recognize the user's voice
+    # Recognize the user's voices
     try:
         transcribed_text = r.recognize_google(audio, language='fr-FR')
         if "laura" in transcribed_text.lower():
@@ -44,10 +62,12 @@ while True:
                         response = openai.Completion.create(
                             engine=model,
                             prompt=question,
-                            max_tokens=1,
-                            n=1,
-                            stop=None,
-                            temperature=0.5
+                            temperature=0,
+                            max_tokens=100,
+                            top_p=1,
+                            frequency_penalty=0.0,
+                            presence_penalty=0.0,
+                            stop=["\n"]
                         )
                         answer = response.choices[0].text
                         print("Réponse: ", answer)
