@@ -32,6 +32,7 @@ r = sr.Recognizer()
 
 # Starting the microphone
 with sr.Microphone() as source:
+    r.adjust_for_ambient_noise(source)
     print("Dite 'Laura' pour activer l'assistant vocal")
     audio = r.listen(source)
 
