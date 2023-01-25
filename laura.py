@@ -80,7 +80,7 @@ try:
             print("Votre avez dit: " + prompt)
             # Generate a response
             completion = openai.Completion.create(
-                engine=model_engine,
+                engine=model,
                 prompt=prompt,
                 max_tokens=1024,
                 n=1,
