@@ -6,9 +6,9 @@ import pyaudio
 import openai
 from gtts import gTTS
 from pydub import AudioSegment
-import simpleaudio as sa
 from fuzzywuzzy import fuzz
 import configparser
+
 
 # read config file
 config = configparser.ConfigParser()
@@ -36,6 +36,35 @@ with sr.Microphone() as source:
     r.adjust_for_ambient_noise(source)
     print("Dite 'Laura' pour activer l'assistant vocal")
     audio = r.listen(source)
+
+# Function to convert the text to an audio file and play it
+
+
+def play_audio(text):
+    # Use the gTTS library to convert the text to an audio file
+    tts = gTTS(text)
+    tts.save("response.mp3")
+    # Convert mp3 to wav
+    sound = AudioSegment.from_mp3("response.mp3")
+    sound.export("response.wav", format="wav")
+    # Play the converted file using pyaudio
+    chunk = 1024
+    f = wave.open(r"response.wav", "rb")
+    p = pyaudio.PyAudio()
+    stream = p.open(
+        format=p.get_format_from_width(f.getsampwidth()),
+        channels=f.getnchannels(),
+        rate=f.getframerate(),
+        output=True,
+    )
+    data = f.readframes(chunk)
+    while data:
+        stream.write(data)
+        data = f.readframes(chunk)
+    stream.stop_stream()
+    stream.close()
+    p.terminate()
+
 
 # Recognize the user's voice
 try:
@@ -75,17 +104,3 @@ except sr.UnknownValueError:
     print("Je n'ai pas compris votre question")
     # Call the function to convert the text to an audio file and play it
     play_audio("Je n'ai pas compris votre question")
-
-
-# Function to convert the text to an audio file and play it
-def play_audio(text):
-    # Utilise Google Text-to-Speech pour convertir le texte en fichier audio
-    tts = gTTS(text)
-    tts.save("response.mp3")
-    # Convert mp3 to wav
-    sound = AudioSegment.from_mp3("response.mp3")
-    sound.export("response.wav", format="wav")
-    # Joue le fichier audio à l'aide de simpleaudio
-    wave_obj = sa.WaveObject.from_wave_file("response.wav")
-    play_obj = wave_obj.play()
-    play_obj.wait_done()
